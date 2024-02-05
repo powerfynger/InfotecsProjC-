@@ -7,6 +7,9 @@
 #include <condition_variable>
 #include <vector>
 #include <algorithm>
+#include <arpa/inet.h>
+
+unsigned int defaultPort = 9999;
 
 class SharedBuffer
 {
@@ -37,13 +40,16 @@ class Thread2
 {
 
 public:
-    Thread2(SharedBuffer &exBuffer) : _buffer(exBuffer) {}
+    Thread2(SharedBuffer &exBuffer);
     void run();
 
 private:
     void _processData(std::string& data);
     void _sendCursumToSecondProg();
+    void _establishConnection();
     unsigned int _currSum;
+    int _socket;
+    bool _connected;
     SharedBuffer &_buffer;
 };
 

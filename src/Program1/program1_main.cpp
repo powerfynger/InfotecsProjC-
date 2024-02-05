@@ -51,8 +51,20 @@ void Thread1::_processInput(std::string &userInput)
     }
 }
 
+Thread2::Thread2(SharedBuffer &exBuffer) : _buffer(exBuffer)
+{
+    _connected = false;
+    _socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (_socket == -1)
+    {
+        std::cout << "Error creating socket" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
 void Thread2::run()
 {
+    _establishConnection();
     while (true)
     {
         std::string data = _buffer.readFromBuffer();
@@ -62,18 +74,38 @@ void Thread2::run()
     }
 }
 
-void Thread2::_processData(std::string& data)
+void Thread2::_establishConnection()
+{
+    sockaddr_in serverAddress;
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
+    serverAddress.sin_port = htons(defaultPort);
+
+    if (connect(_socket, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) == -1)
+    {
+        std::cout << "Error connecting to server" << std::endl;
+    }
+    _connected = true;
+}
+
+void Thread2::_processData(std::string &data)
 {
     _currSum = 0;
     for (int i = 0; i < data.length(); i++)
     {
         std::isdigit(data[i]) ? _currSum += data[i] - '0' : i++;
-    } 
+    }
 }
 
 void Thread2::_sendCursumToSecondProg()
 {
-    
+    if (!_connected)
+    {
+        _establishConnection();
+        if (!_connected) return;
+    }
+
+    send(_socket, &_currSum, sizeof(_currSum), 0);
 }
 
 void SharedBuffer::writeToBuffer(const std::string &data)
