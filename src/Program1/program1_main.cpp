@@ -53,7 +53,27 @@ void Thread1::_processInput(std::string &userInput)
 
 void Thread2::run()
 {
-    std::string data = _buffer.readFromBuffer();
+    while (true)
+    {
+        std::string data = _buffer.readFromBuffer();
+        std::cout << data << std::endl;
+        _processData(data);
+        _sendCursumToSecondProg();
+    }
+}
+
+void Thread2::_processData(std::string& data)
+{
+    _currSum = 0;
+    for (int i = 0; i < data.length(); i++)
+    {
+        std::isdigit(data[i]) ? _currSum += data[i] - '0' : i++;
+    } 
+}
+
+void Thread2::_sendCursumToSecondProg()
+{
+    
 }
 
 void SharedBuffer::writeToBuffer(const std::string &data)

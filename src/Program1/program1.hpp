@@ -41,6 +41,9 @@ public:
     void run();
 
 private:
+    void _processData(std::string& data);
+    void _sendCursumToSecondProg();
+    unsigned int _currSum;
     SharedBuffer &_buffer;
 };
 
