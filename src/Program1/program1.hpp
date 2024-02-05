@@ -6,6 +6,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <vector>
+#include <algorithm>
 
 class SharedBuffer
 {
@@ -27,6 +28,8 @@ public:
     void run();
 
 private:
+    bool _validateInput(std::string& userInput);
+    void _processInput(std::string& userInput);
     SharedBuffer &_buffer;
 };
 
