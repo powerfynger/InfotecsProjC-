@@ -25,6 +25,24 @@ private:
     std::condition_variable _cond;
 };
 
+class Client 
+{
+public:
+    Client(int port) : _port(port) {}
+    void connectToServer();
+    void reconnectToServer();
+    void sendNumberToServer(int number);
+
+private:
+    int _port;
+    int _clientSocket;
+    bool _connected;
+    struct sockaddr_in _serverAddress;
+
+    void _createSocket();
+    void _establishConnection();
+};
+
 class Thread1
 {
 
@@ -40,18 +58,15 @@ private:
 
 class Thread2
 {
-
 public:
-    Thread2(SharedBuffer &exBuffer);
+    Thread2(SharedBuffer &exBuffer, Client client);
     void run();
 
 private:
+    Client _webClient;
     void _processData(std::string& data);
-    void _sendCursumToSecondProg();
-    void _establishConnection();
     unsigned int _currSum;
     int _socket;
-    bool _connected;
     SharedBuffer &_buffer;
 };
 

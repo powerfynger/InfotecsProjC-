@@ -60,7 +60,7 @@ void Server::_handleClient(int clientSocket)
     while (true)
     {
         int number = 0;
-        size_t bytesRead = recv(clientSocket, &number, sizeof(number), 0);
+        size_t bytesRead = recv(clientSocket, &number, sizeof(number), MSG_NOSIGNAL);
         if (bytesRead <= 0)
         {
             std::cout << "Client disconnected\n";

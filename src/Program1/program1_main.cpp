@@ -50,9 +50,8 @@ void Thread1::_processInput(std::string &userInput)
     }
 }
 
-Thread2::Thread2(SharedBuffer &exBuffer) : _buffer(exBuffer)
+Thread2::Thread2(SharedBuffer &exBuffer, Client client) : _buffer(exBuffer), _webClient(client)
 {
-    _connected = false;
     _socket = socket(AF_INET, SOCK_STREAM, 0);
     if (_socket == -1)
     {
@@ -63,28 +62,14 @@ Thread2::Thread2(SharedBuffer &exBuffer) : _buffer(exBuffer)
 
 void Thread2::run()
 {
-    _establishConnection();
+    _webClient.connectToServer();
     while (true)
     {
         std::string data = _buffer.readFromBuffer();
         std::cout << data << std::endl;
         _processData(data);
-        _sendCursumToSecondProg();
+        _webClient.sendNumberToServer(_currSum);
     }
-}
-
-void Thread2::_establishConnection()
-{
-    sockaddr_in serverAddress;
-    serverAddress.sin_family = AF_INET;
-    serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
-    serverAddress.sin_port = htons(defaultPort);
-
-    if (connect(_socket, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) == -1)
-    {
-        std::cout << "Error connecting to server" << std::endl;
-    }
-    _connected = true;
 }
 
 void Thread2::_processData(std::string &data)
@@ -93,21 +78,6 @@ void Thread2::_processData(std::string &data)
     for (int i = 0; i < data.length(); i++)
     {
         std::isdigit(data[i]) ? _currSum += data[i] - '0' : i++;
-    }
-}
-
-void Thread2::_sendCursumToSecondProg()
-{
-    if (!_connected)
-    {
-        _establishConnection();
-        if (!_connected) return;
-    }
-    if(send(_socket, &_currSum, sizeof(_currSum), MSG_NOSIGNAL) == -1)
-    {
-        _connected = false;
-
-
     }
 }
 
@@ -121,17 +91,73 @@ void SharedBuffer::writeToBuffer(const std::string &data)
 std::string SharedBuffer::readFromBuffer()
 {
     std::unique_lock<std::mutex> lock(_mutex);
-    _cond.wait(lock,  [this] { return !_data.empty(); });
+    _cond.wait(lock, [this]
+               { return !_data.empty(); });
     std::string tmp = _data;
     _data.clear();
     return tmp;
 }
 
+void Client::connectToServer()
+{
+    _createSocket();
+    _establishConnection();
+}
+
+void Client::reconnectToServer()
+{
+    _establishConnection();
+}
+
+void Client::_createSocket()
+{
+    _clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (_clientSocket == -1)
+    {
+        std::cout << "Error creating socket" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
+void Client::_establishConnection()
+{
+    _serverAddress.sin_family = AF_INET;
+    _serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
+    _serverAddress.sin_port = htons(_port);
+    
+    if (connect(_clientSocket, (struct sockaddr *)&_serverAddress, sizeof(_serverAddress)) == 0)
+    {
+        _connected = true;
+        std::cout << "Connected to server\n";
+    }
+    else
+    {
+        std::cout << "Connection failed. Retrying...\n";
+        _createSocket();
+    }
+}
+
+void Client::sendNumberToServer(int number)
+{
+     if (!_connected)
+    {
+        _establishConnection();
+        if (!_connected)
+            return;
+    }
+    if (send(_clientSocket, &number, sizeof(number), MSG_NOSIGNAL) == -1)
+    {
+        _connected = false;
+    }
+}
+
+
 int main()
 {
     SharedBuffer buffer;
+    Client cl(defaultPort);
     Thread1 thread1(buffer);
-    Thread2 thread2(buffer);
+    Thread2 thread2(buffer, cl);
 
     std::thread t1(&Thread1::run, &thread1);
     std::thread t2(&Thread2::run, &thread2);
