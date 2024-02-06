@@ -5,7 +5,6 @@ void Thread1::run()
     while (true)
     {
         std::string input;
-        std::cout << ">> ";
         std::cin >> input;
         if (!_validateInput(input))
             continue;
@@ -104,8 +103,12 @@ void Thread2::_sendCursumToSecondProg()
         _establishConnection();
         if (!_connected) return;
     }
+    if(send(_socket, &_currSum, sizeof(_currSum), MSG_NOSIGNAL) == -1)
+    {
+        _connected = false;
 
-    send(_socket, &_currSum, sizeof(_currSum), 0);
+
+    }
 }
 
 void SharedBuffer::writeToBuffer(const std::string &data)
@@ -118,7 +121,7 @@ void SharedBuffer::writeToBuffer(const std::string &data)
 std::string SharedBuffer::readFromBuffer()
 {
     std::unique_lock<std::mutex> lock(_mutex);
-    _cond.wait(lock, !_data.empty());
+    _cond.wait(lock,  [this] { return !_data.empty(); });
     std::string tmp = _data;
     _data.clear();
     return tmp;

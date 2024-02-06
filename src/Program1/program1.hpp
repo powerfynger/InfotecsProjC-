@@ -8,6 +8,8 @@
 #include <vector>
 #include <algorithm>
 #include <arpa/inet.h>
+#include <unistd.h>
+
 
 unsigned int defaultPort = 9999;
 
